@@ -1,17 +1,16 @@
 # AI 额度看板
 
-一款 macOS 菜单栏工具，集中查看 DeepSeek、小米 MiMo、OpenAI Codex、Gemini 和 Antigravity 的余额或剩余额度。支持程序坞主窗口、其他应用全屏时的浮动看板，以及按供应商选择显示内容。
+一款桌面菜单栏与系统托盘工具（支持 macOS 与 Windows），集中查看 DeepSeek、小米 MiMo、OpenAI Codex、Gemini 和 Antigravity 的余额或剩余额度。支持程序坞主窗口、系统托盘悬浮面板，以及按供应商自由选择显示内容。
 
 ## 下载
 
-- [直接下载 macOS 安装包（Apple Silicon · dmg）](https://github.com/chillchill0027/ai-quota-monitor/releases/latest/download/AIQuotaMonitor-1.4.4-arm64.dmg)
-- [查看 GitHub Releases 发布页](https://github.com/chillchill0027/ai-quota-monitor/releases/latest)（提供 SHA256 校验文件与源码压缩包）
+- **macOS**：[直接下载 macOS 安装包（Apple Silicon · dmg）](https://github.com/chillchill0027/ai-quota-monitor/releases/latest/download/AIQuotaMonitor-1.4.4-arm64.dmg)
+- **Windows**：[查看 GitHub Releases 发布页下载 Windows 绿色版](https://github.com/chillchill0027/ai-quota-monitor/releases/latest)（提供单文件版与 SHA256 校验文件）
 
 ## 系统要求
 
-- Apple Silicon Mac（当前发行包为 arm64）。
-- macOS 14 或更新版本。
-- macOS 26 及更新系统使用原生 Liquid Glass，旧系统使用兼容的毛玻璃外观。
+- **macOS**：Apple Silicon Mac，macOS 14+（macOS 26+ 支持原生 Liquid Glass）。
+- **Windows**：Windows 10 (1809+) 或 Windows 11 64位系统（支持 Mica / Acrylic 磨砂外观，自带 WebView2 运行时）。
 
 当前 DMG 使用 ad-hoc 本地签名，尚未进行 Developer ID 签名和 Apple 公证，macOS 可能要求额外的安全确认。正式面向公众分发的签名要求见 [开发与打包](docs/development.md)。
 
@@ -63,10 +62,11 @@ bash scripts/package-dmg.sh
 ## 项目目录
 
 ```text
-Sources/      SwiftUI、AppKit 和各供应商读取实现
+Sources/      macOS 端 SwiftUI、AppKit 和各供应商读取实现
+windows/      Windows 端 .NET 8 (WPF) + WebView2 原生实现
 Tests/        使用合成数据与模拟进程的离线回归测试
 Resources/    应用图标、供应商品牌图标及第三方声明
-packaging/    应用包元数据模板
+packaging/    macOS 应用包元数据模板
 scripts/      图标生成与 DMG 打包脚本
 docs/         架构与开发说明
 dist/         本地产物，不纳入版本控制

@@ -1,0 +1,62 @@
+name: Build and Release Windows App
+
+on:
+  push:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/build-windows.yml'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore windows/src/AIQuotaMonitor.csproj
+
+      - name: Publish Windows x64 Single File
+        run: |
+          dotnet publish windows/src/AIQuotaMonitor.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o build-output/win-x64
+
+      - name: Create ZIP Archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build-output/win-x64/* -DestinationPath build-output/AIQuotaMonitor-1.4.4-windows-x64.zip
+          $hash = (Get-FileHash build-output/AIQuotaMonitor-1.4.4-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  AIQuotaMonitor-1.4.4-windows-x64.zip" | Out-File -Encoding utf8 build-output/AIQuotaMonitor-1.4.4-windows-x64.zip.sha256
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AIQuotaMonitor-Windows-x64
+          path: build-output/
+
+      - name: Attach to GitHub Release (on tag or manual)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build-output/AIQuotaMonitor-1.4.4-windows-x64.zip
+            build-output/AIQuotaMonitor-1.4.4-windows-x64.zip.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,188 @@
+<Window x:Class="AIQuotaMonitor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AI 额度看板"
+        Width="380"
+        SizeToContent="Height"
+        MaxHeight="800"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="#181818"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <Style TargetType="ProgressBar">
+            <Setter Property="Height" Value="4" />
+            <Setter Property="Foreground" Value="#0078D4" />
+            <Setter Property="Background" Value="#25FFFFFF" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </Window.Resources>
+
+    <Border CornerRadius="16" BorderBrush="#33FFFFFF" BorderThickness="1" Background="#282828" Padding="14">
+        <StackPanel Spacing="10">
+            <!-- Header -->
+            <Grid Height="30">
+                <TextBlock Text="AI 额度看板" FontSize="14" FontWeight="SemiBold" Foreground="#F0FFFFFF" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button x:Name="RefreshAllBtn" Click="OnRefreshAllClick" Padding="10,4" Background="#30FFFFFF" Foreground="#FFFFFF" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="12"/>
+                            </Style>
+                        </Button.Resources>
+                        <TextBlock Text="全部刷新" FontSize="11" />
+                    </Button>
+                    <Button x:Name="SettingsBtn" Click="OnSettingsToggleClick" Width="26" Height="26" Background="#20FFFFFF" Foreground="#FFFFFF" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="13"/>
+                            </Style>
+                        </Button.Resources>
+                        <TextBlock Text="⚙" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Status Banner -->
+            <TextBlock x:Name="StatusBannerText" FontSize="10" Foreground="#88FFFFFF" HorizontalAlignment="Left" TextTrimming="CharacterEllipsis" />
+
+            <!-- Main ScrollView for Provider Cards -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="680" Focusable="False">
+                <StackPanel x:Name="CardsContainer" Spacing="8">
+
+                    <!-- DeepSeek Card -->
+                    <Border x:Name="DeepSeekCard" CornerRadius="12" Background="#15FFFFFF" BorderBrush="#20FFFFFF" BorderThickness="1" Padding="12">
+                        <StackPanel Spacing="6">
+                            <DockPanel>
+                                <TextBlock Text="DeepSeek API" FontWeight="SemiBold" FontSize="12" Foreground="#FFFFFF" DockPanel.Dock="Left" />
+                                <TextBlock x:Name="DeepSeekStatus" FontSize="10" Foreground="#00BC7D" DockPanel.Dock="Right" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <TextBlock x:Name="DeepSeekAmount" Text="¥ 0.00" FontSize="22" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="刷新" Click="OnDeepSeekRefreshClick" FontSize="10" Background="#20FFFFFF" Foreground="#FFF" BorderThickness="0" Padding="8,2" />
+                                <Button Content="配置 Key" Click="OnDeepSeekKeyConfigClick" FontSize="10" Background="#20FFFFFF" Foreground="#FFF" BorderThickness="0" Padding="8,2" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- MiMo Card -->
+                    <Border x:Name="MiMoCard" CornerRadius="12" Background="#15FFFFFF" BorderBrush="#20FFFFFF" BorderThickness="1" Padding="12">
+                        <StackPanel Spacing="6">
+                            <DockPanel>
+                                <TextBlock Text="小米 MiMo (按量)" FontWeight="SemiBold" FontSize="12" Foreground="#FFFFFF" DockPanel.Dock="Left" />
+                                <TextBlock x:Name="MiMoStatus" FontSize="10" Foreground="#00BC7D" DockPanel.Dock="Right" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <TextBlock x:Name="MiMoAmount" Text="¥ 0.00" FontSize="22" FontWeight="SemiBold" Foreground="#FFFFFF" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="刷新" Click="OnMiMoRefreshClick" FontSize="10" Background="#20FFFFFF" Foreground="#FFF" BorderThickness="0" Padding="8,2" />
+                                <Button Content="用量页登录" Click="OnMiMoLoginClick" FontSize="10" Background="#20FFFFFF" Foreground="#FFF" BorderThickness="0" Padding="8,2" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Codex Card -->
+                    <Border x:Name="CodexCard" CornerRadius="12" Background="#15FFFFFF" BorderBrush="#20FFFFFF" BorderThickness="1" Padding="12">
+                        <StackPanel Spacing="6">
+                            <DockPanel>
+                                <TextBlock Text="OpenAI · Codex" FontWeight="SemiBold" FontSize="12" Foreground="#FFFFFF" DockPanel.Dock="Left" />
+                                <TextBlock x:Name="CodexStatus" FontSize="10" Foreground="#00BC7D" DockPanel.Dock="Right" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <!-- 5h -->
+                            <DockPanel>
+                                <TextBlock Text="5 小时窗口" FontSize="11" Foreground="#DDD" />
+                                <TextBlock x:Name="Codex5hText" Text="--%" FontSize="11" Foreground="#FFF" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <ProgressBar x:Name="Codex5hBar" Value="0" Maximum="100" />
+                            <!-- 7d -->
+                            <DockPanel>
+                                <TextBlock Text="7 天窗口" FontSize="11" Foreground="#DDD" />
+                                <TextBlock x:Name="Codex7dText" Text="--%" FontSize="11" Foreground="#FFF" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <ProgressBar x:Name="Codex7dBar" Value="0" Maximum="100" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="刷新" Click="OnCodexRefreshClick" FontSize="10" Background="#20FFFFFF" Foreground="#FFF" BorderThickness="0" Padding="8,2" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Gemini Card -->
+                    <Border x:Name="GeminiCard" CornerRadius="12" Background="#15FFFFFF" BorderBrush="#20FFFFFF" BorderThickness="1" Padding="12">
+                        <StackPanel Spacing="6">
+                            <DockPanel>
+                                <TextBlock Text="Google AI Pro (Gemini)" FontWeight="SemiBold" FontSize="12" Foreground="#FFFFFF" DockPanel.Dock="Left" />
+                                <TextBlock x:Name="GeminiStatus" FontSize="10" Foreground="#00BC7D" DockPanel.Dock="Right" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <!-- 5h -->
+                            <DockPanel>
+                                <TextBlock Text="5 小时窗口" FontSize="11" Foreground="#DDD" />
+                                <TextBlock x:Name="Gemini5hText" Text="--%" FontSize="11" Foreground="#FFF" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <ProgressBar x:Name="Gemini5hBar" Value="0" Maximum="100" />
+                            <!-- 7d -->
+                            <DockPanel>
+                                <TextBlock Text="7 天窗口" FontSize="11" Foreground="#DDD" />
+                                <TextBlock x:Name="Gemini7dText" Text="--%" FontSize="11" Foreground="#FFF" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <ProgressBar x:Name="Gemini7dBar" Value="0" Maximum="100" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="刷新" Click="OnGeminiRefreshClick" FontSize="10" Background="#20FFFFFF" Foreground="#FFF" BorderThickness="0" Padding="8,2" />
+                                <Button Content="用量页登录" Click="OnGeminiLoginClick" FontSize="10" Background="#20FFFFFF" Foreground="#FFF" BorderThickness="0" Padding="8,2" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Antigravity Card -->
+                    <Border x:Name="AntigravityCard" CornerRadius="12" Background="#15FFFFFF" BorderBrush="#20FFFFFF" BorderThickness="1" Padding="12">
+                        <StackPanel Spacing="6">
+                            <DockPanel>
+                                <TextBlock Text="谷歌反重力 (Antigravity)" FontWeight="SemiBold" FontSize="12" Foreground="#FFFFFF" DockPanel.Dock="Left" />
+                                <TextBlock x:Name="AntigravityStatus" FontSize="10" Foreground="#00BC7D" DockPanel.Dock="Right" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <!-- 5h -->
+                            <DockPanel>
+                                <TextBlock Text="Gemini · 5 小时" FontSize="11" Foreground="#DDD" />
+                                <TextBlock x:Name="Agy5hText" Text="--%" FontSize="11" Foreground="#FFF" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <ProgressBar x:Name="Agy5hBar" Value="0" Maximum="100" />
+                            <!-- Weekly -->
+                            <DockPanel>
+                                <TextBlock Text="Gemini · 7 天" FontSize="11" Foreground="#DDD" />
+                                <TextBlock x:Name="AgyWeeklyText" Text="--%" FontSize="11" Foreground="#FFF" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <ProgressBar x:Name="AgyWeeklyBar" Value="0" Maximum="100" />
+                            <!-- Argon -->
+                            <DockPanel>
+                                <TextBlock Text="Argon · 7 天" FontSize="11" Foreground="#DDD" />
+                                <TextBlock x:Name="AgyArgonText" Text="--%" FontSize="11" Foreground="#FFF" HorizontalAlignment="Right" />
+                            </DockPanel>
+                            <ProgressBar x:Name="AgyArgonBar" Value="0" Maximum="100" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="查询" Click="OnAgyRefreshClick" FontSize="10" Background="#20FFFFFF" Foreground="#FFF" BorderThickness="0" Padding="8,2" />
+                                <Button Content="打开 Hub" Click="OnAgyHubClick" FontSize="10" Background="#20FFFFFF" Foreground="#FFF" BorderThickness="0" Padding="8,2" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Settings Panel (Hidden by default) -->
+            <Border x:Name="SettingsPanel" Visibility="Collapsed" CornerRadius="12" Background="#20FFFFFF" Padding="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="显示供应商卡片（至少保留 1 家）" FontWeight="SemiBold" FontSize="12" Foreground="#FFF" />
+                    <CheckBox x:Name="CbDeepSeek" Content="DeepSeek" Foreground="#FFF" Click="OnProviderToggle" />
+                    <CheckBox x:Name="CbMiMo" Content="小米 MiMo" Foreground="#FFF" Click="OnProviderToggle" />
+                    <CheckBox x:Name="CbCodex" Content="OpenAI · Codex" Foreground="#FFF" Click="OnProviderToggle" />
+                    <CheckBox x:Name="CbGemini" Content="Gemini" Foreground="#FFF" Click="OnProviderToggle" />
+                    <CheckBox x:Name="CbAntigravity" Content="谷歌反重力" Foreground="#FFF" Click="OnProviderToggle" />
+                    <Separator Background="#30FFFFFF" />
+                    <Button Content="退出应用" Click="OnExitClick" Background="#30FFFFFF" Foreground="#FF6B6B" BorderThickness="0" Padding="10,4" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </Border>
+</Window>
