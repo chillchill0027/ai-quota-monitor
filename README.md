@@ -5,7 +5,8 @@
 ## 下载
 
 - **macOS**：[直接下载 macOS 安装包（Apple Silicon · dmg）](https://github.com/chillchill0027/ai-quota-monitor/releases/latest/download/AIQuotaMonitor-1.4.4-arm64.dmg)
-- **Windows**：[查看 GitHub Releases 发布页下载 Windows 绿色版](https://github.com/chillchill0027/ai-quota-monitor/releases/latest)（提供单文件版与 SHA256 校验文件）
+- **Windows**：[直接下载 Windows 绿色免安装版（x64 · zip）](https://github.com/chillchill0027/ai-quota-monitor/releases/latest/download/AIQuotaMonitor-1.4.4-windows-x64.zip)
+- **全部版本与校验文件**：[访问 GitHub Releases 发布页](https://github.com/chillchill0027/ai-quota-monitor/releases/latest)
 
 ## 系统要求
 
