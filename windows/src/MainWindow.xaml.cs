@@ -129,11 +129,10 @@ namespace AIQuotaMonitor
 
         private void OnDeepSeekKeyConfigClick(object sender, RoutedEventArgs e)
         {
-            string current = CredentialStorage.ReadDeepSeekKey();
-            var input = Microsoft.VisualBasic.Interaction.InputBox("请输入 DeepSeek API Key（将使用 Windows DPAPI 加密存于本机）：", "DeepSeek API Key 设置", current);
-            if (!string.IsNullOrEmpty(input))
+            var dlg = new Views.KeyConfigDialog { Owner = this };
+            dlg.ShowDialog();
+            if (dlg.Saved)
             {
-                CredentialStorage.SaveDeepSeekKey(input.Trim());
                 _ = _manager.RefreshSingleAsync(ProviderID.DeepSeek);
             }
         }
