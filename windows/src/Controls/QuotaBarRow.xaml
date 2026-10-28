@@ -1,0 +1,31 @@
+<UserControl x:Class="AIQuotaMonitor.Controls.QuotaBarRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root"
+             Foreground="{DynamicResource PrimaryTextBrush}"
+             Focusable="False"
+             AutomationProperties.Name="{Binding Label, ElementName=Root}">
+    <StackPanel>
+        <Grid Margin="0,0,0,4">
+            <TextBlock x:Name="RowLabel" Text="{Binding Label, ElementName=Root}"
+                       FontSize="11" Foreground="{Binding Foreground, ElementName=Root}"
+                       Opacity="0.85" VerticalAlignment="Center" />
+            <TextBlock x:Name="ValueLabel" Text="未读取" FontSize="11"
+                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                       Foreground="{DynamicResource SecondaryTextBrush}" />
+        </Grid>
+        <ProgressBar x:Name="QuotaBar" Height="4" Minimum="0" Maximum="100"
+                     Value="0" Background="{DynamicResource QuotaTrackBrush}"
+                     BorderThickness="0" IsHitTestVisible="False" Focusable="False">
+            <ProgressBar.Template>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid x:Name="PART_Track" Height="4">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="2" />
+                        <Border x:Name="PART_Indicator" HorizontalAlignment="Left"
+                                Background="{TemplateBinding Foreground}" CornerRadius="2" />
+                    </Grid>
+                </ControlTemplate>
+            </ProgressBar.Template>
+        </ProgressBar>
+    </StackPanel>
+</UserControl>

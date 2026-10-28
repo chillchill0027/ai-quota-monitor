@@ -23,7 +23,9 @@
 
   <ItemGroup>
     <Resource Include="Resources/AppIcon.png" />
+    <Resource Include="Resources/AppIcon.ico" />
     <Resource Include="Resources/ProviderIcons/*.png" />
+    <None Include="../../Resources/ThirdPartyNotices.txt" Link="ThirdPartyNotices.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

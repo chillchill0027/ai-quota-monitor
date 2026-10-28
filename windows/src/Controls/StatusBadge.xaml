@@ -1,0 +1,24 @@
+<UserControl x:Class="AIQuotaMonitor.Controls.StatusBadge"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False" VerticalAlignment="Center">
+    <Grid>
+        <Border x:Name="BadgeBackground" CornerRadius="50" Opacity="0.08"
+                Background="{DynamicResource SecondaryTextBrush}" />
+        <Border Padding="7,4">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Grid x:Name="IndicatorHost" Width="4" Height="8" Margin="0,0,4,0" VerticalAlignment="Center">
+                    <Ellipse x:Name="StatusDot" Width="4" Height="4"
+                             Fill="{DynamicResource SecondaryTextBrush}" />
+                    <Ellipse x:Name="Spinner" Width="8" Height="8" StrokeThickness="1.2"
+                             Stroke="{DynamicResource AccentBrush}" StrokeDashArray="3,3"
+                             StrokeDashCap="Round" RenderTransformOrigin="0.5,0.5" Visibility="Collapsed">
+                        <Ellipse.RenderTransform><RotateTransform x:Name="SpinnerRotation" /></Ellipse.RenderTransform>
+                    </Ellipse>
+                </Grid>
+                <TextBlock x:Name="StatusTitle" Text="待配置" FontSize="10" FontWeight="Medium"
+                           Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

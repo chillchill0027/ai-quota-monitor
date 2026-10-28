@@ -19,12 +19,4 @@ namespace AIQuotaMonitor.Models
         Webpage,
         Manual
     }
-
-    public enum MenuBarDisplayStyle
-    {
-        IconOnly,
-        CompactBalances,
-        AllFour,
-        AllFive
-    }
 }

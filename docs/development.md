@@ -1,5 +1,26 @@
 # 开发与打包
 
+## Windows
+
+安装 .NET 8 SDK 后，从仓库根目录运行：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\build-windows.ps1
+```
+
+产物位于 `dist/win-x64/`，根目录 `dist/` 同时生成版本化绿色版 ZIP 和 SHA-256。双击 `双击启动_AI额度看板.cmd` 可自动构建缺失产物并启动；更新后使用 `windows/start-windows.ps1 -Rebuild` 重新发布。运行绿色版无需 .NET SDK，网页供应商依赖 WebView2 Runtime。完整说明、账户配置和本地数据路径见 [Windows 文档](../windows/README.md)。
+
+Windows 离线回归：
+
+```powershell
+dotnet run --project windows/tests/ServiceTests/ServiceTests.csproj -c Release
+dotnet run --project windows/tests/DesktopTests/DesktopTests.csproj -c Release
+```
+
+前者使用合成数据与模拟 CLI；后者在临时隔离状态目录检查 WPF 渲染及设置持久化。CI 会在发布前运行两组检查。首次执行需还原依赖，实际测试不访问真实账户。
+
+以下为 macOS 开发与分发流程。
+
 ## 构建环境
 
 - Apple Silicon Mac。

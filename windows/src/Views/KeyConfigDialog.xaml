@@ -1,30 +1,109 @@
 <Window x:Class="AIQuotaMonitor.Views.KeyConfigDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="DeepSeek API Key 设置"
-        Width="380"
-        Height="210"
-        WindowStartupLocation="CenterScreen"
-        WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
-        Topmost="True"
-        ResizeMode="NoResize">
-
-    <Border CornerRadius="14" Background="#282828" BorderBrush="#33FFFFFF" BorderThickness="1" Padding="16">
+        Title="DeepSeek API Key"
+        Width="346" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None" AllowsTransparency="False"
+        Background="Transparent" ShowInTaskbar="False"
+        ResizeMode="NoResize" UseLayoutRounding="True"
+        FontFamily="Segoe UI, Microsoft YaHei UI">
+    <Window.Resources>
+        <SolidColorBrush x:Key="DialogText" Color="#20232C" />
+        <SolidColorBrush x:Key="DialogSecondaryText" Color="#737985" />
+        <SolidColorBrush x:Key="DialogControlBackground" Color="#80FFFFFF" />
+        <SolidColorBrush x:Key="DialogControlBorder" Color="#30000000" />
+        <SolidColorBrush x:Key="DialogButtonBackground" Color="#70FFFFFF" />
+        <SolidColorBrush x:Key="DialogDangerText" Color="#C95156" />
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource DialogButtonBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource DialogText}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource DialogControlBorder}" />
+            <Setter Property="BorderThickness" Value="0.5" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome" CornerRadius="9" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.82" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.64" /></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="#4287F5" /><Setter TargetName="Chrome" Property="BorderThickness" Value="1" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.4" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="PasswordBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource DialogText}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource DialogText}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border Background="{TemplateBinding Background}"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" /></Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource DialogText}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource DialogText}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" /></Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Border x:Name="DialogSurface" CornerRadius="20" BorderThickness="0.5" Padding="18">
         <StackPanel>
-            <TextBlock Text="配置 DeepSeek API Key" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,0,0,6" />
-            <TextBlock Text="Key 将使用 Windows DPAPI 加密存入当前 Windows 账户安全存储中：" FontSize="11" Foreground="#AAAAAA" TextWrapping="Wrap" Margin="0,0,0,12" />
-
-            <TextBox x:Name="KeyInputBox" Height="30" FontSize="12" Background="#181818" Foreground="#FFFFFF" BorderBrush="#33FFFFFF" Padding="6,4" Margin="0,0,0,16" />
-
-            <DockPanel LastChildFill="False">
-                <Button Content="清除 Key" Click="OnClearClick" Background="#30FF5555" Foreground="#FF8888" BorderThickness="0" Padding="12,5" DockPanel.Dock="Left" />
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                    <Button Content="取消" Click="OnCancelClick" Background="#20FFFFFF" Foreground="#CCCCCC" BorderThickness="0" Padding="12,5" Margin="0,0,8,0" />
-                    <Button Content="保存并查询" Click="OnSaveClick" Background="#0078D4" Foreground="#FFFFFF" FontWeight="SemiBold" BorderThickness="0" Padding="14,5" />
-                </StackPanel>
-            </DockPanel>
+            <TextBlock Text="DeepSeek API Key" FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource DialogText}" Margin="0,0,0,6" MouseLeftButtonDown="OnHeaderMouseDown" />
+            <TextBlock Text="密钥仅保存在此电脑的当前账户中。" FontSize="11"
+                       Foreground="{DynamicResource DialogSecondaryText}" Margin="0,0,0,14" />
+            <Border x:Name="InputSurface" CornerRadius="9" Background="{DynamicResource DialogControlBackground}"
+                    BorderBrush="{DynamicResource DialogControlBorder}" BorderThickness="0.5">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <Grid>
+                        <PasswordBox x:Name="KeyInputBox" PasswordChanged="OnPasswordChanged" AutomationProperties.Name="DeepSeek API Key" />
+                        <TextBox x:Name="RevealedKeyInput" Visibility="Collapsed" TextChanged="OnRevealedKeyChanged" AutomationProperties.Name="DeepSeek API Key（已显示）" />
+                        <TextBlock x:Name="KeyPlaceholder" Text="API Key" FontSize="13" Margin="10,0,0,0" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource DialogSecondaryText}" IsHitTestVisible="False" />
+                    </Grid>
+                    <Button x:Name="RevealButton" Grid.Column="1" Content="显示" Click="OnRevealClick"
+                            AutomationProperties.Name="显示 API Key" ToolTip="显示 API Key"
+                            Background="Transparent" BorderThickness="0" Padding="9,6" Margin="0,3,3,3" FontSize="11" />
+                </Grid>
+            </Border>
+            <TextBlock x:Name="InlineError" Visibility="Collapsed" TextWrapping="Wrap" FontSize="11"
+                       Foreground="{DynamicResource DialogDangerText}" Margin="0,8,0,0" />
+            <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <Button x:Name="ClearButton" Content="清除 Key" Click="OnClearClick" Background="Transparent"
+                        Foreground="{DynamicResource DialogDangerText}" BorderThickness="0" Padding="0,7,8,7" />
+                <Button Grid.Column="2" Content="取消" IsCancel="True" Click="OnCancelClick" Margin="0,0,8,0" />
+                <Button x:Name="SaveButton" Grid.Column="3" Content="保存并查询" IsDefault="True" Click="OnSaveClick"
+                        Background="#0866DE" BorderBrush="#0866DE" Foreground="White" FontWeight="SemiBold" />
+            </Grid>
         </StackPanel>
     </Border>
 </Window>

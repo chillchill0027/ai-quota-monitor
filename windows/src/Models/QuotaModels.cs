@@ -35,7 +35,7 @@ namespace AIQuotaMonitor.Models
         public DateTime UpdatedAt { get; set; } = DateTime.MinValue;
         public ConnectionStatus Status { get; set; } = ConnectionStatus.NeedsSetup;
         public DataOrigin? Source { get; set; }
-        public string? Note { get; set; } = "打开官方余额页；可手动录入或点击小窗读取明确现金余额";
+        public string? Note { get; set; } = "在供应商菜单选择「打开用量小窗」登录官方余额页，然后刷新读取明确现金余额";
 
         public double? DeltaFromPrevious => (PreviousBalance != null && PreviousBalance != CashBalance)
             ? CashBalance - PreviousBalance
@@ -78,7 +78,7 @@ namespace AIQuotaMonitor.Models
             PlanLabel = "Google AI Pro",
             UpdatedAt = DateTime.MinValue,
             Status = ConnectionStatus.NeedsSetup,
-            Note = "打开官方用量页；小窗读取或点开状态栏时同步已显示的配额"
+            Note = "在供应商菜单选择「打开用量小窗」登录官方用量页，然后点击刷新读取页面明确显示的配额"
         };
 
         public static QuotaWindowSnapshot DefaultChatGPT => new()
@@ -86,7 +86,7 @@ namespace AIQuotaMonitor.Models
             PlanLabel = "Codex（ChatGPT 订阅）",
             UpdatedAt = DateTime.MinValue,
             Status = ConnectionStatus.NeedsSetup,
-            Note = "点开状态栏或点击查询，通过已登录的 Codex CLI 获取官方额度"
+            Note = "点击刷新，通过本机已登录的 Codex CLI 获取官方额度"
         };
     }
 

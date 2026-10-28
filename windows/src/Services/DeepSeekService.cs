@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -61,39 +62,7 @@ namespace AIQuotaMonitor.Services
                 }
 
                 string content = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(content);
-                var root = doc.RootElement;
-
-                bool isAvailable = root.GetProperty("is_available").GetBoolean();
-                var balanceInfos = root.GetProperty("balance_infos");
-
-                if (balanceInfos.GetArrayLength() == 0)
-                {
-                    var empty = DeepSeekBalanceSnapshot.Placeholder;
-                    empty.Status = ConnectionStatus.Unavailable;
-                    empty.ErrorMessage = "未返回余额信息";
-                    return new FetchResult { Snapshot = empty };
-                }
-
-                var first = balanceInfos[0];
-                string currency = first.GetProperty("currency").GetString() ?? "CNY";
-                double total = double.TryParse(first.GetProperty("total_balance").GetString(), out var t) ? t : 0.0;
-                double granted = double.TryParse(first.GetProperty("granted_balance").GetString(), out var g) ? g : 0.0;
-                double toppedUp = double.TryParse(first.GetProperty("topped_up_balance").GetString(), out var top) ? top : 0.0;
-
-                var snapshot = new DeepSeekBalanceSnapshot
-                {
-                    IsAvailable = isAvailable,
-                    Currency = currency,
-                    TotalBalance = total,
-                    GrantedBalance = granted,
-                    ToppedUpBalance = toppedUp,
-                    UpdatedAt = DateTime.UtcNow,
-                    Status = ConnectionStatus.Ready,
-                    Source = DataOrigin.OfficialAPI
-                };
-
-                return new FetchResult { Snapshot = snapshot };
+                return new FetchResult { Snapshot = ParseBalance(content) };
             }
             catch (Exception ex)
             {
@@ -102,6 +71,48 @@ namespace AIQuotaMonitor.Services
                 fail.ErrorMessage = ex.Message;
                 return new FetchResult { Snapshot = fail };
             }
+        }
+
+        internal static DeepSeekBalanceSnapshot ParseBalance(string content)
+        {
+            using var document = JsonDocument.Parse(content);
+            var root = document.RootElement;
+            bool isAvailable = root.GetProperty("is_available").GetBoolean();
+            var balanceInfos = root.GetProperty("balance_infos");
+            if (balanceInfos.ValueKind != JsonValueKind.Array) throw new FormatException("DeepSeek 余额格式异常");
+            if (balanceInfos.GetArrayLength() == 0)
+            {
+                var empty = DeepSeekBalanceSnapshot.Placeholder;
+                empty.Status = ConnectionStatus.Unavailable;
+                empty.ErrorMessage = "未返回余额信息";
+                return empty;
+            }
+            var first = balanceInfos[0];
+            string? currency = first.GetProperty("currency").GetString();
+            if (string.IsNullOrWhiteSpace(currency)) throw new FormatException("DeepSeek 未返回余额币种");
+            return new DeepSeekBalanceSnapshot
+            {
+                IsAvailable = isAvailable,
+                Currency = currency,
+                TotalBalance = ReadMoney(first, "total_balance"),
+                GrantedBalance = ReadMoney(first, "granted_balance"),
+                ToppedUpBalance = ReadMoney(first, "topped_up_balance"),
+                UpdatedAt = DateTime.UtcNow,
+                Status = ConnectionStatus.Ready,
+                Source = DataOrigin.OfficialAPI
+            };
+        }
+
+        private static double ReadMoney(JsonElement element, string name)
+        {
+            var value = element.GetProperty(name);
+            // API decimal strings always use '.', independently of Windows regional settings.
+            double parsed;
+            bool valid = value.ValueKind == JsonValueKind.Number ? value.TryGetDouble(out parsed)
+                : double.TryParse(value.ValueKind == JsonValueKind.String ? value.GetString() : null,
+                    NumberStyles.Float, CultureInfo.InvariantCulture, out parsed);
+            if (!valid || !double.IsFinite(parsed)) throw new FormatException("DeepSeek 返回了无效余额，请稍后重试");
+            return parsed;
         }
     }
 }

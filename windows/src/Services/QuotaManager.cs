@@ -12,10 +12,8 @@ namespace AIQuotaMonitor.Services
 {
     public class QuotaManager : INotifyPropertyChanged
     {
-        private static readonly string AppDataFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "AIQuotaMonitor");
-        private static readonly string StatePath = Path.Combine(AppDataFolder, "state.json");
+        private readonly string _appDataFolder;
+        private readonly string _statePath;
 
         public DeepSeekBalanceSnapshot DeepSeek { get; set; } = DeepSeekBalanceSnapshot.Placeholder;
         public MiMoBalanceSnapshot MiMo { get; set; } = MiMoBalanceSnapshot.Placeholder;
@@ -24,7 +22,7 @@ namespace AIQuotaMonitor.Services
         public AntigravityQuotaSnapshot Antigravity { get; set; } = AntigravityQuotaSnapshot.Placeholder;
 
         public HashSet<ProviderID> VisibleProviders { get; } = new(ProviderExtensions.DashboardOrder);
-        public MenuBarDisplayStyle MenuBarStyle { get; set; } = MenuBarDisplayStyle.CompactBalances;
+        public HashSet<ProviderID> RefreshingProviders { get; } = new();
 
         private bool _isRefreshing;
         public bool IsRefreshing
@@ -46,8 +44,11 @@ namespace AIQuotaMonitor.Services
         private void OnPropertyChanged([CallerMemberName] string? name = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-        public QuotaManager()
+        public QuotaManager(string? stateDirectory = null)
         {
+            _appDataFolder = stateDirectory ?? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AIQuotaMonitor");
+            _statePath = Path.Combine(_appDataFolder, "state.json");
             LoadState();
         }
 
@@ -72,15 +73,15 @@ namespace AIQuotaMonitor.Services
 
             try
             {
-                var dsTask = RefreshDeepSeekAsync(isManual);
-                var codexTask = RefreshCodexAsync(isManual);
-                var agyTask = RefreshAntigravityAsync(isManual);
-                var mimoTask = RefreshMiMoAsync(isManual);
-                var geminiTask = RefreshGeminiAsync(isManual);
+                var dsTask = RefreshProviderAsync(ProviderID.DeepSeek, isManual);
+                var codexTask = RefreshProviderAsync(ProviderID.ChatGPT, isManual);
+                var agyTask = RefreshProviderAsync(ProviderID.Antigravity, isManual);
+                var mimoTask = RefreshProviderAsync(ProviderID.MiMo, isManual);
+                var geminiTask = RefreshProviderAsync(ProviderID.Gemini, isManual);
 
                 await Task.WhenAll(dsTask, codexTask, agyTask, mimoTask, geminiTask);
 
-                StatusBanner = "刷新完成 · " + DateTime.Now.ToString("HH:mm:ss");
+                StatusBanner = "刷新完成 · 失败原因可悬停查看 · " + DateTime.Now.ToString("HH:mm:ss");
                 SaveState();
             }
             finally
@@ -94,16 +95,11 @@ namespace AIQuotaMonitor.Services
         {
             if (IsRefreshing) return;
             IsRefreshing = true;
+            StatusBanner = $"正在刷新 {provider.GetShortName()}…";
             try
             {
-                switch (provider)
-                {
-                    case ProviderID.DeepSeek: await RefreshDeepSeekAsync(true); break;
-                    case ProviderID.MiMo: await RefreshMiMoAsync(true); break;
-                    case ProviderID.ChatGPT: await RefreshCodexAsync(true); break;
-                    case ProviderID.Gemini: await RefreshGeminiAsync(true); break;
-                    case ProviderID.Antigravity: await RefreshAntigravityAsync(true); break;
-                }
+                await RefreshProviderAsync(provider, true);
+                StatusBanner = $"{provider.GetShortName()} 刷新完成 · {DateTime.Now:HH:mm:ss}";
                 SaveState();
             }
             finally
@@ -113,16 +109,63 @@ namespace AIQuotaMonitor.Services
             }
         }
 
+        private async Task RefreshProviderAsync(ProviderID provider, bool isManual)
+        {
+            RefreshingProviders.Add(provider);
+            OnPropertyChanged(nameof(RefreshingProviders));
+            try
+            {
+                switch (provider)
+                {
+                    case ProviderID.DeepSeek: await RefreshDeepSeekAsync(isManual); break;
+                    case ProviderID.MiMo: await RefreshMiMoAsync(isManual); break;
+                    case ProviderID.ChatGPT: await RefreshCodexAsync(isManual); break;
+                    case ProviderID.Gemini: await RefreshGeminiAsync(isManual); break;
+                    case ProviderID.Antigravity: await RefreshAntigravityAsync(isManual); break;
+                }
+            }
+            catch (Exception ex)
+            {
+                // One provider failing must not interrupt the other providers or lose cache.
+                switch (provider)
+                {
+                    case ProviderID.DeepSeek: DeepSeek.Status = ConnectionStatus.Error; DeepSeek.ErrorMessage = ex.Message; break;
+                    case ProviderID.MiMo: MiMo.Status = ConnectionStatus.Error; MiMo.Note = ex.Message; break;
+                    case ProviderID.ChatGPT: ChatGPT.Status = ConnectionStatus.Error; ChatGPT.Note = ex.Message; break;
+                    case ProviderID.Gemini: Gemini.Status = ConnectionStatus.Error; Gemini.Note = ex.Message; break;
+                    case ProviderID.Antigravity: Antigravity.Status = ConnectionStatus.Error; Antigravity.Note = ex.Message; break;
+                }
+            }
+            finally
+            {
+                RefreshingProviders.Remove(provider);
+                OnPropertyChanged(nameof(RefreshingProviders));
+            }
+        }
+
         private async Task RefreshDeepSeekAsync(bool isManual)
         {
             string key = CredentialStorage.ReadDeepSeekKey();
-            if (string.IsNullOrWhiteSpace(key)) return;
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                DeepSeek.Status = ConnectionStatus.NeedsSetup;
+                DeepSeek.ErrorMessage = "点击供应商名称，在菜单选择「配置 API Key」填写密钥。";
+                return;
+            }
             if (_access.Begin("deepseek", isManual) != null) return;
 
             var result = await DeepSeekService.FetchBalanceAsync(key);
-            DeepSeek = result.Snapshot;
-            if (result.Snapshot.Status == ConnectionStatus.Ready) _access.Succeeded("deepseek");
-            else _access.Failed("deepseek");
+            if (result.Snapshot.Status == ConnectionStatus.Ready)
+            {
+                DeepSeek = result.Snapshot;
+                _access.Succeeded("deepseek");
+            }
+            else
+            {
+                DeepSeek.Status = result.Snapshot.Status;
+                DeepSeek.ErrorMessage = result.Snapshot.ErrorMessage;
+                _access.Failed("deepseek");
+            }
         }
 
         private async Task RefreshCodexAsync(bool isManual)
@@ -130,8 +173,18 @@ namespace AIQuotaMonitor.Services
             if (_access.Begin("codex", isManual) != null) return;
             try
             {
-                ChatGPT = await CodexQuotaService.FetchQuotaAsync();
-                _access.Succeeded("codex");
+                var result = await CodexQuotaService.FetchQuotaAsync();
+                if (result.Status == ConnectionStatus.Ready)
+                {
+                    ChatGPT = result;
+                    _access.Succeeded("codex");
+                }
+                else
+                {
+                    ChatGPT.Status = result.Status;
+                    ChatGPT.Note = result.Note;
+                    _access.Failed("codex");
+                }
             }
             catch (Exception ex)
             {
@@ -146,9 +199,18 @@ namespace AIQuotaMonitor.Services
             if (_access.Begin("antigravity", isManual) != null) return;
             try
             {
-                Antigravity = await AntigravityQuotaService.FetchQuotaAsync();
-                if (Antigravity.Status == ConnectionStatus.Ready) _access.Succeeded("antigravity");
-                else _access.Failed("antigravity");
+                var result = await AntigravityQuotaService.FetchQuotaAsync();
+                if (result.Status == ConnectionStatus.Ready)
+                {
+                    Antigravity = result;
+                    _access.Succeeded("antigravity");
+                }
+                else
+                {
+                    Antigravity.Status = result.Status;
+                    Antigravity.Note = result.Note;
+                    _access.Failed("antigravity");
+                }
             }
             catch (Exception ex)
             {
@@ -167,16 +229,20 @@ namespace AIQuotaMonitor.Services
                 var money = WebQuotaParser.ParseMiMoBalance(text);
                 if (money != null)
                 {
+                    MiMo.PreviousBalance = MiMo.UpdatedAt != DateTime.MinValue ? MiMo.CashBalance : null;
                     MiMo.CashBalance = money.Amount;
                     MiMo.CurrencyCode = money.Currency;
                     MiMo.CurrencySymbol = money.CurrencySymbol;
                     MiMo.Status = ConnectionStatus.Ready;
                     MiMo.Source = DataOrigin.Webpage;
                     MiMo.UpdatedAt = DateTime.UtcNow;
+                    MiMo.Note = "已读取官方页面中的现金余额。";
                     _access.Succeeded("mimo");
                     return;
                 }
             }
+            MiMo.Status = MiMo.UpdatedAt == DateTime.MinValue ? ConnectionStatus.NeedsSetup : ConnectionStatus.Error;
+            MiMo.Note = "未读到明确现金余额。请在供应商菜单选择「打开用量小窗」完成登录，确认页面显示现金余额后再刷新。";
             _access.Failed("mimo");
         }
 
@@ -191,32 +257,86 @@ namespace AIQuotaMonitor.Services
                 {
                     Gemini.FiveHourRemainingPercent = quota.FiveHour?.RemainingPercent;
                     Gemini.WeeklyRemainingPercent = quota.Weekly?.RemainingPercent;
+                    Gemini.FiveHourResetText = quota.FiveHour?.ResetText;
+                    Gemini.WeeklyResetText = quota.Weekly?.ResetText;
                     Gemini.Status = ConnectionStatus.Ready;
                     Gemini.Source = DataOrigin.Webpage;
                     Gemini.UpdatedAt = DateTime.UtcNow;
+                    Gemini.Note = "已读取官方用量页。";
                     _access.Succeeded("gemini");
                     return;
                 }
             }
+            Gemini.Status = Gemini.UpdatedAt == DateTime.MinValue ? ConnectionStatus.NeedsSetup : ConnectionStatus.Error;
+            Gemini.Note = "未读到页面明确显示的配额。请在供应商菜单选择「打开用量小窗」登录；若平台限制内嵌登录，请在浏览器查看官方用量页。";
             _access.Failed("gemini");
         }
 
-        public string GetTrayTooltip()
+        public void ResumeProvider(ProviderID provider)
         {
-            string ds = DeepSeek.UpdatedAt != DateTime.MinValue ? $"{DeepSeek.CurrencySymbol}{DeepSeek.TotalBalance:F1}" : "--";
-            string mi = MiMo.UpdatedAt != DateTime.MinValue ? $"{MiMo.CurrencySymbol}{MiMo.CashBalance:F1}" : "--";
-            string gem = Gemini.FiveHourRemainingPercent != null ? $"{Gemini.FiveHourRemainingPercent:F0}%" : "--";
-            string codex = ChatGPT.FiveHourRemainingPercent != null ? $"{ChatGPT.FiveHourRemainingPercent:F0}%" : "--";
-            string agy = Antigravity.FiveHourRemainingPercent != null ? $"{Antigravity.FiveHourRemainingPercent:F0}%" : "--";
+            string key = provider == ProviderID.ChatGPT ? "codex" : provider.ToString().ToLowerInvariant();
+            _access.ClearSuspension(key);
+            StatusBanner = "已解除本地认证暂停；需要时点击刷新，服务端等待时间继续有效。";
+        }
 
-            return $"AI 额度看板\nDeepSeek: {ds} | MiMo: {mi}\nCodex: {codex} | Gemini: {gem} | 反重力: {agy}";
+        public bool TryApplyManualCalibration(ProviderID provider, double? first, double? weekly, double? argon,
+            string currency, out string error)
+        {
+            error = "";
+            if (IsRefreshing) { error = "正在刷新，请刷新完成后再校准。"; return false; }
+            if (provider == ProviderID.MiMo)
+            {
+                if (!first.HasValue || !double.IsFinite(first.Value) || currency is not ("CNY" or "USD"))
+                { error = "请输入有效现金余额和币种；余额可以为负数。"; return false; }
+                MiMo.PreviousBalance = MiMo.UpdatedAt != DateTime.MinValue ? MiMo.CashBalance : null;
+                MiMo.CashBalance = first.Value;
+                MiMo.CurrencyCode = currency;
+                MiMo.CurrencySymbol = currency == "USD" ? "$" : "¥";
+                MiMo.UpdatedAt = DateTime.UtcNow;
+                MiMo.Status = ConnectionStatus.ManualCalibrated;
+                MiMo.Source = DataOrigin.Manual;
+                MiMo.Note = "手动校准的现金余额；下次成功读取官方页面后更新。";
+            }
+            else if (provider is ProviderID.Gemini or ProviderID.Antigravity)
+            {
+                bool Invalid(double? value) => value.HasValue && (!double.IsFinite(value.Value) || value < 0 || value > 100);
+                if (Invalid(first) || Invalid(weekly) || Invalid(argon))
+                { error = "请输入 0–100 的剩余百分比；未知可留空。"; return false; }
+                if (provider == ProviderID.Gemini)
+                {
+                    Gemini.FiveHourRemainingPercent = first;
+                    Gemini.WeeklyRemainingPercent = weekly;
+                    Gemini.FiveHourResetsAt = Gemini.WeeklyResetsAt = null;
+                    Gemini.FiveHourResetText = Gemini.WeeklyResetText = "手动校准，重置时间以官方页面为准";
+                    Gemini.Status = ConnectionStatus.ManualCalibrated;
+                    Gemini.Source = DataOrigin.Manual;
+                    Gemini.UpdatedAt = DateTime.UtcNow;
+                    Gemini.Note = "手动校准的剩余额度；下次成功读取官方页面后更新。";
+                }
+                else
+                {
+                    Antigravity.FiveHourRemainingPercent = first;
+                    Antigravity.WeeklyRemainingPercent = weekly;
+                    Antigravity.ArgonWeeklyRemainingPercent = argon;
+                    Antigravity.FiveHourResetsAt = Antigravity.WeeklyResetsAt = Antigravity.ArgonWeeklyResetsAt = null;
+                    Antigravity.FiveHourResetText = Antigravity.WeeklyResetText = Antigravity.ArgonWeeklyResetText = "手动校准，重置时间以官方页面为准";
+                    Antigravity.Status = ConnectionStatus.ManualCalibrated;
+                    Antigravity.Source = DataOrigin.Manual;
+                    Antigravity.UpdatedAt = DateTime.UtcNow;
+                    Antigravity.Note = "手动校准的剩余额度；下次成功读取本地服务后更新。";
+                }
+            }
+            else { error = "此供应商不支持手动校准。"; return false; }
+            SaveState();
+            OnPropertyChanged("");
+            return true;
         }
 
         public void SaveState()
         {
             try
             {
-                if (!Directory.Exists(AppDataFolder)) Directory.CreateDirectory(AppDataFolder);
+                Directory.CreateDirectory(_appDataFolder);
                 var data = new
                 {
                     DeepSeek,
@@ -224,10 +344,11 @@ namespace AIQuotaMonitor.Services
                     ChatGPT,
                     Gemini,
                     Antigravity,
-                    Visible = VisibleProviders.Select(p => p.ToString()).ToList(),
-                    MenuBarStyle = MenuBarStyle.ToString()
+                    Visible = VisibleProviders.Select(p => p.ToString()).ToList()
                 };
-                File.WriteAllText(StatePath, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+                string temporaryPath = _statePath + ".tmp";
+                File.WriteAllText(temporaryPath, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+                File.Move(temporaryPath, _statePath, overwrite: true);
             }
             catch { }
         }
@@ -236,8 +357,8 @@ namespace AIQuotaMonitor.Services
         {
             try
             {
-                if (!File.Exists(StatePath)) return;
-                string json = File.ReadAllText(StatePath);
+                if (!File.Exists(_statePath)) return;
+                string json = File.ReadAllText(_statePath);
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
                 if (root.TryGetProperty("DeepSeek", out var ds)) DeepSeek = JsonSerializer.Deserialize<DeepSeekBalanceSnapshot>(ds.GetRawText()) ?? DeepSeek;
@@ -246,6 +367,19 @@ namespace AIQuotaMonitor.Services
                 if (root.TryGetProperty("Gemini", out var g)) Gemini = JsonSerializer.Deserialize<QuotaWindowSnapshot>(g.GetRawText()) ?? Gemini;
                 if (root.TryGetProperty("Antigravity", out var a)) Antigravity = JsonSerializer.Deserialize<AntigravityQuotaSnapshot>(a.GetRawText()) ?? Antigravity;
 
+                if (root.TryGetProperty("Visible", out var visible) && visible.ValueKind == JsonValueKind.Array)
+                {
+                    var providers = visible.EnumerateArray()
+                        .Where(item => item.ValueKind == JsonValueKind.String)
+                        .Select(item => Enum.TryParse<ProviderID>(item.GetString(), out var value) && Enum.IsDefined(value)
+                            ? (ProviderID?)value : null)
+                        .Where(value => value.HasValue).Select(value => value!.Value).ToHashSet();
+                    if (providers.Count > 0)
+                    {
+                        VisibleProviders.Clear();
+                        VisibleProviders.UnionWith(providers);
+                    }
+                }
                 if (DeepSeek.Status == ConnectionStatus.Ready) DeepSeek.Status = ConnectionStatus.Cached;
                 if (MiMo.Status == ConnectionStatus.Ready) MiMo.Status = ConnectionStatus.Cached;
                 if (ChatGPT.Status == ConnectionStatus.Ready) ChatGPT.Status = ConnectionStatus.Cached;

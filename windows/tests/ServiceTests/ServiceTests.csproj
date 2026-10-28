@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ServiceTests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Models/QuotaModels.cs" Link="QuotaModels.cs" />
+    <Compile Include="../../src/Models/Enums.cs" Link="Enums.cs" />
+    <Compile Include="../../src/Services/CodexQuotaService.cs" Link="CodexQuotaService.cs" />
+    <Compile Include="../../src/Services/AntigravityQuotaService.cs" Link="AntigravityQuotaService.cs" />
+    <Compile Include="../../src/Services/DeepSeekService.cs" Link="DeepSeekService.cs" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+</Project>

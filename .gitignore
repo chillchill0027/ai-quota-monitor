@@ -12,6 +12,12 @@
 Resources/AppIcon.icns
 dist/
 output/
+build-output/
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
 
 # Local screenshots, recordings, diagnostics, and scratch files
 artifacts/
