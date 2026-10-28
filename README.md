@@ -4,8 +4,8 @@
 
 ## 下载
 
-- [下载 macOS 安装包（Apple Silicon）](https://github.com/chillchill0027/ai-quota-monitor/releases/latest)
-- 发布页同时提供 SHA256 校验文件与源码压缩包。
+- [直接下载 macOS 安装包（Apple Silicon · dmg）](https://github.com/chillchill0027/ai-quota-monitor/releases/latest/download/AIQuotaMonitor-1.4.4-arm64.dmg)
+- [查看 GitHub Releases 发布页](https://github.com/chillchill0027/ai-quota-monitor/releases/latest)（提供 SHA256 校验文件与源码压缩包）
 
 ## 系统要求
 
